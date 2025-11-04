@@ -1,48 +1,35 @@
 <?php
-
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use Notifiable, HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-    ];
+    protected $fillable = ['name','email','password','role','quota_bytes','group_id'];
+    protected $hidden = ['password'];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
+    public function group() { return $this->belongsTo(Group::class); }
+    public function files() { return $this->hasMany(StoredFile::class); }
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    // helper: effective quota: user -> group -> global
+    public function effectiveQuota()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        if ($this->quota_bytes) return (int)$this->quota_bytes;
+        if ($this->group && $this->group->quota_bytes) return (int)$this->group->quota_bytes;
+        // fallback global default from DB settings table isn't implemented for brevity.
+        // We'll read from ForbiddenExtension/global default configured in admin settings row.
+        $setting = \DB::table('settings')->where('key','global_quota_bytes')->first();
+        return $setting ? (int)$setting->value : 10*1024*1024;
     }
+
+    public function usedBytes()
+    {
+        return (int)$this->files()->sum('size_bytes');
+    }
+
+    public function isAdmin() { return $this->role === 'admin'; }
 }
