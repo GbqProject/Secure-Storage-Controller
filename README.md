@@ -43,13 +43,8 @@ Default example accounts (created by seeder):
   5. On success file saved in `storage/app/public/uploads`, and DB record created.
 - UI uses `public/js/uploader.js` to make the upload via `fetch` and display success/error messages without page reload.
 
-## Notes / improvements
-- I used a simple built-in auth demonstration (`Auth::attempt`) — in production use Laravel's auth scaffolding.
-- Add server-side virus/mime-type deep validation for production.
-- Add pagination and file removal.
-- Add tests.
 
-## DB schema highlights
+## DB schema
 - `users` (role, quota_bytes, group_id)
 - `groups` (quota_bytes)
 - `stored_files` (user_id, original_name, path, size_bytes)
